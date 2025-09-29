@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Video Splitter 30s</title>
 
-  <!-- Wajib supaya SharedArrayBuffer bisa aktif -->
+  <!-- Supaya ffmpeg.wasm bisa jalan -->
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
   <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
 
@@ -17,11 +17,24 @@
   <button id="start">Mulai Potong</button>
   <div id="output"></div>
 
-  <!-- Load ffmpeg.wasm dari unpkg (lebih stabil untuk UMD) -->
+  <!-- Load versi UMD -->
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
   <script>
-    const { createFFmpeg, fetchFile } = FFmpeg;
-    const ffmpeg = createFFmpeg({ log: true });
+    // Gunakan global FFmpeg
+    const ffmpeg = FFmpeg.createFFmpeg({ log: true });
+    const fetchFile = FFmpeg.fetchFile;
+
+    // Fungsi untuk ambil durasi video asli
+    function getVideoDuration(file) {
+      return new Promise((resolve) => {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = () => {
+          resolve(video.duration);
+        };
+        video.src = URL.createObjectURL(file);
+      });
+    }
 
     document.getElementById('start').addEventListener('click', async () => {
       const fileInput = document.getElementById('uploader');
@@ -33,19 +46,25 @@
       const videoFile = fileInput.files[0];
       const fileName = "input.mp4";
 
+      // Ambil durasi asli
+      const duration = await getVideoDuration(videoFile);
+      console.log("Durasi video (detik):", duration);
+
+      // Load ffmpeg pertama kali
       if (!ffmpeg.isLoaded()) {
         await ffmpeg.load();
       }
 
+      // Masukkan file ke virtual FS
       ffmpeg.FS('writeFile', fileName, await fetchFile(videoFile));
 
-      // Max 30 menit
-      const maxDuration = 30 * 60; 
-      const chunk = 30; 
-      const totalClips = Math.ceil(maxDuration / chunk);
+      const chunk = 30;  // potongan 30 detik
+      const totalClips = Math.ceil(duration / chunk);
 
       for (let i = 0; i < totalClips; i++) {
         const start = i * chunk;
+        if (start >= duration) break; // jangan lewat durasi asli
+
         const outName = output_${i + 1}.mp4;
 
         try {
@@ -60,13 +79,13 @@
           const data = ffmpeg.FS('readFile', outName);
           const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
 
-          // Auto download
+          // Auto download tiap clip
           const a = document.createElement('a');
           a.href = url;
           a.download = outName;
           a.click();
 
-          // Tampilkan judul default
+          // Tambahkan judul default
           const outDiv = document.getElementById('output');
           const p = document.createElement('p');
           p.textContent = Vid ${i + 1} – Judul default;
@@ -74,6 +93,7 @@
 
         } catch (err) {
           console.error("Error clip:", err);
+          break;
         }
       }
     });
