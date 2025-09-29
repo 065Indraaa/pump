@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <title>Video Splitter 30s</title>
 
-  <!-- Wajib untuk aktifkan SharedArrayBuffer di browser -->
+  <!-- Wajib supaya SharedArrayBuffer bisa aktif -->
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
   <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+
+  <!-- Hilangkan error favicon -->
+  <link rel="icon" href="data:,">
 </head>
 <body>
   <h2>Video Splitter 30s</h2>
@@ -14,8 +17,8 @@
   <button id="start">Mulai Potong</button>
   <div id="output"></div>
 
-  <!-- Load ffmpeg.wasm versi UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+  <!-- Load ffmpeg.wasm dari unpkg (lebih stabil untuk UMD) -->
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
   <script>
     const { createFFmpeg, fetchFile } = FFmpeg;
     const ffmpeg = createFFmpeg({ log: true });
