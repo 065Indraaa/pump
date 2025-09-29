@@ -53,7 +53,7 @@
           break;
         }
 
-        const outName = output_${i + 1}.mp4;
+        const outName = 'output_${i + 1}.mp4';
 
         try {
           await ffmpeg.run(
@@ -74,7 +74,7 @@
 
           const outDiv = document.getElementById('output');
           const p = document.createElement('p');
-          p.textContent = Vid ${i + 1} – Judul default;
+          p.textContent = 'Vid ${i + 1} – Judul default';
           outDiv.appendChild(p);
 
         } catch (err) {
