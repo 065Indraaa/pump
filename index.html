@@ -63,7 +63,9 @@
 
       for (let i = 0; i < totalClips; i++) {
         const start = i * chunk;
-        if (start >= duration) break; // jangan lewat durasi asli
+        if (start >= duration) {
+          break; // jangan lewat durasi asli
+        }
 
         const outName = output_${i + 1}.mp4;
 
