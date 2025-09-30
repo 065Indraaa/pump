@@ -2,21 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Video Splitter 30s</title>
+  <title>Video Splitter 30s + Logo</title>
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
   <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
   <link rel="icon" href="data:,">
 </head>
 <body>
-  <h2>Video Splitter 30s</h2>
-  <input type="file" id="uploader" accept="video/*">
+  <h2>Video Splitter 30s + Logo</h2>
+  <input type="file" id="uploader" accept="video/*"><br><br>
+  <input type="file" id="logo" accept="image/*"><br><br>
   <button id="start">Mulai Potong</button>
   <div id="output"></div>
 
   <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
   <script>
-    const ffmpeg = FFmpeg.createFFmpeg({ log: true });
-    const fetchFile = FFmpeg.fetchFile;
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
 
     function getVideoDuration(file) {
       return new Promise((resolve) => {
@@ -29,13 +30,22 @@
 
     document.getElementById('start').addEventListener('click', async () => {
       const fileInput = document.getElementById('uploader');
+      const logoInput = document.getElementById('logo');
+
       if (fileInput.files.length === 0) {
         alert("Pilih video dulu!");
         return;
       }
+      if (logoInput.files.length === 0) {
+        alert("Pilih logo dulu!");
+        return;
+      }
 
       const videoFile = fileInput.files[0];
+      const logoFile = logoInput.files[0];
+
       const fileName = "input.mp4";
+      const logoName = "logo.png";
       const duration = await getVideoDuration(videoFile);
 
       if (!ffmpeg.isLoaded()) {
@@ -43,39 +53,38 @@
       }
 
       ffmpeg.FS('writeFile', fileName, await fetchFile(videoFile));
+      ffmpeg.FS('writeFile', logoName, await fetchFile(logoFile));
 
       const chunk = 30;
       const totalClips = Math.ceil(duration / chunk);
 
       for (let i = 0; i < totalClips; i++) {
         const start = i * chunk;
-        if (start >= duration) {
-          break;
-        }
+        if (start >= duration) break;
 
-        const outName = 'output_${i + 1}.mp4';
+        const outName = `output_${i + 1}.mp4`;
 
         try {
           await ffmpeg.run(
             '-i', fileName,
+            '-i', logoName,
             '-ss', String(start),
             '-t', String(chunk),
-            '-c', 'copy',
+            '-filter_complex', 'overlay=W-w-10:10',  // Logo pojok kanan atas (10px dari tepi)
+            '-c:a', 'copy',
             outName
           );
 
           const data = ffmpeg.FS('readFile', outName);
           const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
 
+          // Buat tombol download otomatis
           const a = document.createElement('a');
           a.href = url;
           a.download = outName;
-          a.click();
-
-          const outDiv = document.getElementById('output');
-          const p = document.createElement('p');
-          p.textContent = 'Vid ${i + 1} – Judul default';
-          outDiv.appendChild(p);
+          a.textContent = `Download ${outName}`;
+          a.style.display = "block";
+          document.getElementById('output').appendChild(a);
 
         } catch (err) {
           console.error("Error clip:", err);
